@@ -5,7 +5,7 @@ https://guide.elm-lang.org/effects/
 
 from queue import Queue
 from threading import Thread
-from typing import Any, Callable, Generic, List, Optional, Tuple, TypeVar
+from typing import Any, Callable, Generic, List, Tuple, TypeVar
 
 from rospy_util.controller.cmd import Cmd, Publishers
 from rospy_util.controller.sub import Sub, Subscribers
@@ -14,7 +14,7 @@ Model = TypeVar("Model")
 Msg = TypeVar("Msg")
 
 
-Update = Callable[[Msg, Model], Tuple[Model, Optional[Cmd]]]
+Update = Callable[[Msg, Model], Tuple[Model, List[Cmd]]]
 Subscriptions = Callable[[Model], List[Sub[Any, Msg]]]
 
 
@@ -47,9 +47,9 @@ class Controller(Generic[Model, Msg]):
             self.subscribers.subscribe(subs)
 
             msg = self.message_queue.get()
-            (new_model, cmd) = self.update(msg, self.model)
+            (new_model, cmds) = self.update(msg, self.model)
 
-            if cmd is not None:
+            for cmd in cmds:
                 self.publishers.publish(cmd)
 
             self.model = new_model

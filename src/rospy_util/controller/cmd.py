@@ -2,23 +2,25 @@
 ROS controller commands.
 """
 
+# pyright: reportInvalidTypeVarUse=false
+
 from dataclasses import dataclass
-from typing import Dict, Type, TypeVar
+from typing import Dict, Generic, Type, TypeVar
 
 import rospy
 
-T = TypeVar("T")
+RosMsg = TypeVar("RosMsg", bound=rospy.Message)
 
 
 @dataclass
-class Cmd:
+class Cmd(Generic[RosMsg]):
     """
     A command to specify outbound ROS messages.
     """
 
     topic_name: str
-    message_type: Type[rospy.Message]  # no existential types rip
-    message_value: rospy.Message
+    message_type: Type[RosMsg]  # no existential types rip
+    message_value: RosMsg
 
 
 class Publishers:
@@ -28,7 +30,7 @@ class Publishers:
 
     pub_dict: Dict[str, rospy.Publisher] = {}
 
-    def publish(self, cmd: Cmd) -> None:
+    def publish(self, cmd: Cmd[RosMsg]) -> None:
         """
         Publish the given command and memoize new publishers.
         """
@@ -36,10 +38,12 @@ class Publishers:
         publisher.publish(cmd.message_value)
 
 
-def mk_ros_pub(cmd: Cmd) -> rospy.Publisher:
+def mk_ros_pub(cmd: Cmd[RosMsg]) -> rospy.Publisher:
     """
     Make a ROS publisher to serve the given command.
     """
     return rospy.Publisher(
-        name=cmd.topic_name, data_class=cmd.message_type, queue_size=10
+        name=cmd.topic_name,
+        data_class=cmd.message_type,
+        queue_size=10,
     )

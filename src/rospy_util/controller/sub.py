@@ -2,23 +2,26 @@
 ROS controller subscriptions.
 """
 
+# pyright: reportInvalidTypeVarUse=false
+
 from dataclasses import dataclass
-from typing import Callable, Dict, Generic, List, Type, TypeVar
+from typing import Any, Callable, Dict, Generic, List, Type, TypeVar
 
 import rospy
 
+RosMsg = TypeVar("RosMsg", bound=rospy.Message)
 Msg = TypeVar("Msg")
 
 
 @dataclass
-class Sub(Generic[Msg]):
+class Sub(Generic[RosMsg, Msg]):
     """
     A subscription to specify inbound ROS messages.
     """
 
     topic_name: str
-    message_type: Type[rospy.Message]
-    to_msg: Callable[[rospy.Message], Msg]
+    message_type: Type[RosMsg]
+    to_msg: Callable[[RosMsg], Msg]
 
 
 class Subscribers(Generic[Msg]):
@@ -31,7 +34,8 @@ class Subscribers(Generic[Msg]):
     def __init__(self, callback: Callable[[Msg], None]) -> None:
         self.callback = callback
 
-    def subscribe(self, subs: List[Sub[Msg]]) -> None:
+    # no existential quantification rip
+    def subscribe(self, subs: List[Sub[Any, Msg]]) -> None:
         """
         Register subscribers for new subscriptions, and unregister subscribers
         for subscriptions no longer present.
@@ -47,7 +51,10 @@ class Subscribers(Generic[Msg]):
                 self.sub_dict.pop(topic).unregister()
 
 
-def mk_ros_sub(sub: Sub[Msg], callback: Callable[[Msg], None]) -> rospy.Subscriber:
+def mk_ros_sub(
+    sub: Sub[RosMsg, Msg],
+    callback: Callable[[Msg], None],
+) -> rospy.Subscriber:
     """
     Make a ROS subscriber to run a callback for the given subscription.
     """

@@ -115,8 +115,15 @@ def distance_between(v: Vector2, w: Vector2) -> float:
     return magnitude(v - w)
 
 
-def from_angle(angle: float) -> Vector2:
+def from_angle(theta: float) -> Vector2:
     """
     Create a unit vector from an angle relative to the positive x-axis.
     """
-    return Vector2(cos(angle), sin(angle))
+    return Vector2(cos(theta), sin(theta))
+
+
+def rotate_vector(v: Vector2, theta: float) -> Vector2:
+    return Vector2(
+        x=(v.x * cos(theta)) - (v.y * sin(theta)),
+        y=(v.x * sin(theta)) + (v.y * cos(theta)),
+    )

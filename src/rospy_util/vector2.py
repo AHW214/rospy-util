@@ -122,7 +122,7 @@ def from_angle(theta: float) -> Vector2:
     return Vector2(cos(theta), sin(theta))
 
 
-def rotate_vector(v: Vector2, theta: float) -> Vector2:
+def rotate(v: Vector2, theta: float) -> Vector2:
     return Vector2(
         x=(v.x * cos(theta)) - (v.y * sin(theta)),
         y=(v.x * sin(theta)) + (v.y * cos(theta)),

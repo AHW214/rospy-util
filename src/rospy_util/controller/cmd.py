@@ -5,11 +5,14 @@ ROS controller commands.
 # pyright: reportInvalidTypeVarUse=false
 
 from dataclasses import dataclass
-from typing import Dict, Generic, Type, TypeVar
+from typing import Callable, Dict, Generic, Tuple, Type, TypeVar
 
 import rospy
 
 RosMsg = TypeVar("RosMsg", bound=rospy.Message)
+
+K = TypeVar("K")
+V = TypeVar("V")
 
 
 @dataclass
@@ -21,6 +24,7 @@ class Cmd(Generic[RosMsg]):
     topic_name: str
     message_type: Type[RosMsg]  # no existential types rip
     message_value: RosMsg
+    latch_publisher: bool = False
 
 
 class Publishers:
@@ -34,16 +38,13 @@ class Publishers:
         """
         Publish the given command and memoize new publishers.
         """
-        pub = self.pub_dict.get(cmd.topic_name)
+        (pub_dict, pub) = get_or_def(
+            kvs=self.pub_dict,
+            key=cmd.topic_name,
+            mk_def=lambda: mk_ros_pub(cmd),
+        )
 
-        if pub is None:
-            pub = mk_ros_pub(cmd)
-
-            while pub.get_num_connections() == 0:
-                pass
-
-            self.pub_dict[cmd.topic_name] = pub
-
+        self.pub_dict = pub_dict
         pub.publish(cmd.message_value)
 
 
@@ -54,5 +55,20 @@ def mk_ros_pub(cmd: Cmd[RosMsg]) -> rospy.Publisher:
     return rospy.Publisher(
         name=cmd.topic_name,
         data_class=cmd.message_type,
+        latch=cmd.latch_publisher,
         queue_size=10,
     )
+
+
+def get_or_def(
+    kvs: Dict[K, V],
+    key: K,
+    mk_def: Callable[[], V],
+) -> Tuple[Dict[K, V], V]:
+    value = kvs.get(key)
+
+    if value is None:
+        value_def = mk_def()
+        return ({key: value_def, **kvs}, value_def)
+
+    return (kvs, value)

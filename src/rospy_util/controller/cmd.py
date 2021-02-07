@@ -34,8 +34,17 @@ class Publishers:
         """
         Publish the given command and memoize new publishers.
         """
-        publisher = self.pub_dict.setdefault(cmd.topic_name, mk_ros_pub(cmd))
-        publisher.publish(cmd.message_value)
+        pub = self.pub_dict.get(cmd.topic_name)
+
+        if pub is None:
+            pub = mk_ros_pub(cmd)
+
+            while pub.get_num_connections() == 0:
+                pass
+
+            self.pub_dict[cmd.topic_name] = pub
+
+        pub.publish(cmd.message_value)
 
 
 def mk_ros_pub(cmd: Cmd[RosMsg]) -> rospy.Publisher:

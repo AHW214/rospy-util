@@ -9,6 +9,12 @@ from typing import Any, Callable, Dict, Generic, List, Type, TypeVar
 
 import rospy
 
+__all__ = (
+    "Sub",
+    "Subscribers",
+    "none",
+)
+
 RosMsg = TypeVar("RosMsg", bound=rospy.Message)
 Msg = TypeVar("Msg")
 
@@ -49,6 +55,9 @@ class Subscribers(Generic[Msg]):
         for topic in topic_names:
             if not any(topic == sub.topic_name for sub in subs):
                 self.sub_dict.pop(topic).unregister()
+
+
+none: List[Sub[Any, Any]] = []
 
 
 def mk_ros_sub(

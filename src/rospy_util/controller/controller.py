@@ -14,7 +14,7 @@ Model = TypeVar("Model")
 Msg = TypeVar("Msg")
 
 
-Update = Callable[[Msg, Model], Tuple[Model, List[Cmd]]]
+Update = Callable[[Msg, Model], Tuple[Model, List[Cmd[Any]]]]
 Subscriptions = Callable[[Model], List[Sub[Any, Msg]]]
 
 
@@ -25,7 +25,7 @@ class Controller(Generic[Model, Msg]):
 
     def __init__(
         self,
-        model: Model,
+        init: Tuple[Model, List[Cmd[Any]]],
         update: Update[Msg, Model],
         subscriptions: Subscriptions[Model, Msg],
     ) -> None:
@@ -35,7 +35,10 @@ class Controller(Generic[Model, Msg]):
         self.publishers: Publishers = Publishers()
         self.loop_thread: Thread = Thread(target=self.__loop__, daemon=True)
 
+        (model, commands) = init
+
         self.model = model
+        self.commands = commands
         self.update = update
         self.subscriptions = subscriptions
 
@@ -43,20 +46,21 @@ class Controller(Generic[Model, Msg]):
 
     def __loop__(self) -> None:
         while True:
+            for cmd in self.commands:
+                self.publishers.publish(cmd)
+
             subs = self.subscriptions(self.model)
             self.subscribers.subscribe(subs)
 
             msg = self.message_queue.get()
-            (new_model, cmds) = self.update(msg, self.model)
-
-            for cmd in cmds:
-                self.publishers.publish(cmd)
+            (new_model, new_commands) = self.update(msg, self.model)
 
             self.model = new_model
+            self.commands = new_commands
 
     @staticmethod
     def run(
-        model: Model,
+        init: Tuple[Model, List[Cmd[Any]]],
         update: Update[Msg, Model],
         subscriptions: Subscriptions[Model, Msg],
     ) -> None:
@@ -64,4 +68,4 @@ class Controller(Generic[Model, Msg]):
         Run a ROS controller (Remember to run rospy.init_node before and rospy.
         spin after!)
         """
-        Controller(model, update, subscriptions)
+        Controller(init, update, subscriptions)

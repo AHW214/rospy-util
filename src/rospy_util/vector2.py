@@ -5,6 +5,7 @@ Two-dimensional vectors.
 from __future__ import annotations
 from dataclasses import dataclass
 from math import acos, cos, sin, sqrt
+from typing import Iterator
 
 from geometry_msgs.msg import Point
 
@@ -17,6 +18,9 @@ class Vector2:
 
     x: float
     y: float
+
+    def __iter__(self: Vector2) -> Iterator[float]:
+        return iter([self.x, self.y])
 
     def __eq__(v: Vector2, w: object) -> bool:
         return isinstance(w, Vector2) and equals(v, w)
